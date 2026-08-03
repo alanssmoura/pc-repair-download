@@ -1,0 +1,33 @@
+# Mantem o servidor do PC Repair acordado no Render.
+#
+# O plano gratuito do Render derruba o servico depois de 15 minutos sem
+# nenhuma visita, e a primeira pessoa que chega no site depois disso fica
+# olhando a tela de carregamento do Render por quase um minuto.
+#
+# Este fluxo da um toque no servidor a cada 5 minutos, das 8h da manha ate
+# a meia-noite (horario de Brasilia). De madrugada ele deixa o servidor
+# dormir de proposito, para nao estourar as 750 horas gratuitas do mes.
+#
+# Os horarios do GitHub sao em UTC. Brasilia e UTC-3.
+name: Manter o servidor acordado
+
+on:
+  schedule:
+    # 11:00 as 23:59 UTC  =  08:00 as 20:59 em Brasilia
+    - cron: '*/5 11-23 * * *'
+    # 00:00 as 02:59 UTC  =  21:00 as 23:59 em Brasilia
+    - cron: '*/5 0-2 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar o servidor
+        run: |
+          codigo=$(curl -s -o /dev/null -w '%{http_code}' --max-time 90 \
+            https://pc-repair-painel.onrender.com/api/versao)
+          echo "Resposta do servidor: $codigo"
+          if [ "$codigo" != "200" ]; then
+            echo "::warning::O servidor respondeu $codigo em vez de 200."
+          fi
